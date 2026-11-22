@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXORA AI - Video Generator</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ background:#090912;
+ color:white;
+ font-family:Arial,sans-serif;
+ padding:20px;
+}
+
+.container{
+ max-width:650px;
+ margin:40px auto;
+}
+
+.logo{
+ text-align:center;
+ font-size:34px;
+ font-weight:bold;
+ letter-spacing:2px;
+}
+
+.logo span{color:#a78bfa}
+
+.subtitle{
+ text-align:center;
+ color:#999;
+ margin-bottom:30px;
+}
+
+.card{
+ background:#151522;
+ border:1px solid #302d45;
+ border-radius:18px;
+ padding:22px;
+ margin-top:20px;
+}
+
+textarea,select{
+ width:100%;
+ background:#090912;
+ color:white;
+ border:1px solid #39364f;
+ padding:14px;
+ border-radius:10px;
+ margin:12px 0 20px;
+ font-size:15px;
+}
+
+textarea{resize:vertical}
+
+label{
+ color:#bbb;
+ font-size:13px;
+ font-weight:bold;
+}
+
+button{
+ width:100%;
+ padding:16px;
+ border:0;
+ border-radius:10px;
+ background:linear-gradient(90deg,#7845ef,#c044db);
+ color:white;
+ font-size:16px;
+ font-weight:bold;
+ margin-top:12px;
+ cursor:pointer;
+}
+
+button:disabled{opacity:.5}
+
+#status{
+ text-align:center;
+ color:#c4a7ff;
+ margin-top:20px;
+}
+
+video{
+ width:100%;
+ margin-top:20px;
+ border-radius:12px;
+}
+
+#download{
+ display:none;
+ color:#c4a7ff;
+ text-align:center;
+ margin-top:20px;
+}
+
+.footer{
+ text-align:center;
+ color:#666;
+ font-size:12px;
+ margin-top:30px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="logo">✦ NEXORA <span>AI</span></div>
+
+<p class="subtitle">
+Turn your imagination into videos.
+</p>
+
+<div class="card">
+
+<h2>Create your video</h2>
+
+<label>VIDEO PROMPT</label>
+
+<textarea id="prompt" rows="6"
+placeholder="A cinematic Lamborghini driving through a neon city at night..."></textarea>
+
+<label>VIDEO FORMAT</label>
+
+<select id="ratio">
+<option value="9:16">9:16 Instagram Reels</option>
+<option value="16:9">16:9 YouTube</option>
+<option value="1:1">1:1 Square</option>
+</select>
+
+<label>DURATION</label>
+
+<select id="duration">
+<option value="5">5 Seconds</option>
+<option value="10">10 Seconds</option>
+<option value="15">15 Seconds</option>
+</select>
+
+<button id="generate" onclick="generateVideo()">
+✦ GENERATE VIDEO
+</button>
+
+<div id="status"></div>
+
+<video id="video" controls hidden></video>
+
+<a id="download" target="_blank"
+rel="noopener">
+<button>DOWNLOAD VIDEO ↓</button>
+</a>
+
+</div>
+
+<div class="footer">
+NEXORA AI © 2026
+<br><br>
+CREATE WITHOUT LIMITS
+</div>
+
+</div>
+
+<script>
+
+async function generateVideo(){
+
+ const prompt=document.getElementById("prompt").value.trim();
+ const status=document.getElementById("status");
+ const button=document.getElementById("generate");
+ const video=document.getElementById("video");
+ const download=document.getElementById("download");
+
+ if(!prompt){
+   status.innerText="Please enter a video prompt!";
+   return;
+ }
+
+ button.disabled=true;
+ status.innerText="Connecting to AI...";
+ video.hidden=true;
+ download.style.display="none";
+
+ try{
+
+   const response=await fetch("/generate",{
+     method:"POST",
+     headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({
+       prompt:prompt,
+       ratio:document.getElementById("ratio").value,
+       duration:Number(document.getElementById("duration").value)
+     })
+   });
+
+   const job=await response.json();
+
+   if(!response.ok)throw new Error(job.error);
+
+   status.innerText="Your video is being created...";
+
+   for(let i=0;i<120;i++){
+
+     await new Promise(r=>setTimeout(r,5000));
+
+     const result=await fetch(
+       "/status/"+encodeURIComponent(job.id)
+     );
+
+     const data=await result.json();
+
+     if(!result.ok)throw new Error(data.error);
+
+     if(data.status==="done"){
+
+       video.src=data.video;
+       video.hidden=false;
+
+       download.href=data.video;
+       download.style.display="block";
+
+       status.innerText="Your video is ready! 🎉";
+       return;
+     }
+
+     if(data.status==="failed"){
+       throw new Error("Generation failed. Try again.");
+     }
+
+     status.innerText="AI is generating your video...";
+   }
+
+   throw new Error("Generation is taking longer than expected.");
+
+ }catch(error){
+
+   status.innerText=error.message;
+
+ }finally{
+
+   button.disabled=false;
+
+ }
+
+}
+
+</script>
+
+</body>
+</html>
